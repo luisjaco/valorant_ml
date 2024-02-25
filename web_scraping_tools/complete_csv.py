@@ -27,8 +27,8 @@ class PlayerPage:
         '''Begins player retrieval process.
         
         player_limit: limit of players to find data for.'''
-        while player_limit < 1 or player_limit > 500:
-            print("How many players would you like to find the data for? [1 min, 500 max]:")
+        while player_limit < 1:
+            print("How many players would you like to find the data for?: ")
             player_limit = int(input())
         
         print(f"Starting search with {self.delay}s delay and auto={self.auto}.\n~If you would like to stop execution, [ctrl+c] will safely end execution!~")
@@ -39,19 +39,16 @@ class PlayerPage:
         '''Iterates through rows of a dataframe, completes desired number of unfinished rows.
         
         player_limit: limit of players to find data for.'''
-        players_found = 0
+        iterations = 0
         for index, row in self.df.iterrows():
-                if players_found >= player_limit:
+                if iterations >= player_limit:
                     print("Limit reached. Ending execution.")
-                    break
-                elif row['id'] == len(self.df):
-                    print("End of file. Ending Execution.")
                     break
                 try:
                     # If row has missing data, we will attempt to create a request for data.
                     if pandas.isna(row['damage_per_round']):
-                        self.df.loc[index] = self._request_loop(index, row)
-                        players_found += 1
+                        self.df.loc[index] = self._request_loop(row)
+                        iterations += 1
                         time.sleep(self.delay)
                 except KeyboardInterrupt:
                         print('\nKeyboardInterrupt caught. Ending execution.')
@@ -59,18 +56,23 @@ class PlayerPage:
                 except UserExit:
                         print('Ending execution.')
                         break
+                if row['id'] == self.df.iloc[-1]['id']:
+                    print("End of file. Ending Execution.")
+                    break
     
     def _request_loop(self, row: pandas.Series) -> pandas.Series:
         '''Loop which controls the process of requesting and completing a row of player data.
         
         row: dataframe row of the player.'''
+        encoded_name = self._encode_string(row['name'])
+        encoded_tag = self._encode_string(row['tag'])
         attempts = 0
         while True:
                 # If a request is blocked, we will prompt the user if they would like to try again.
                 try:
                     attempts += 1
                     self._complete_row(row)
-                    print(f"[+] Successfully added data for {str(row['name'].encode())[2:-1]}{row['tag']} [id #{row['id']}].")
+                    print(f"[+] Successfully added data for {encoded_name}{encoded_tag} [id #{row['id']}].")
                     return row
                 except AttributeError:
                     if self.auto:
@@ -80,10 +82,10 @@ class PlayerPage:
                             self.skipped_indices.append(row['id'])
                             return row
                         else:
-                            print(f"[-] Attempt for {str(row['name'].encode())[2:-1]}{str(row['tag'].encode())[2:-1]} [id #{row['id']}] blocked. Sleeping for 30 seconds, then trying again...")
+                            print(f"[-] Attempt for {encoded_name}{encoded_tag} [id #{row['id']}] blocked. Sleeping for 30 seconds, then trying again...")
                             time.sleep(30)
                     else:
-                        print(f"[x] Attempt for {str(row['name'].encode())[2:-1]}{str(row['tag'].encode())[2:-1]} [id #{row['id']}] blocked.\n[2] skip row\n[1] try again\n[0] stop running")
+                        print(f"[x] Attempt for {encoded_name}{encoded_tag} [id #{row['id']}] blocked.\n[2] skip row\n[1] try again\n[0] stop running")
                         response = input()
                         if response == "2":
                             print("Skipping row.")
@@ -94,6 +96,12 @@ class PlayerPage:
                             time.sleep(30)
                         else:
                             raise UserExit
+    
+    def _encode_string(self, string: str) -> str:
+        '''Creates a string encoded in utf-8 from a previously unicode encoded string.
+        
+        string: unicode string.'''
+        return str(string.encode())[2:-1]
     
     def _complete_row(self, row: pandas.Series) -> None:
         '''Completes a dataframe row by checking the players stat page, then setting the missing columns to the corresponding values.
@@ -158,7 +166,6 @@ class PlayerPage:
         else:
             print('Exiting.')
 
-path = 'testing.csv'
+path = 'sample.csv'
 pp = PlayerPage(path, delay=2, auto=True)
-pp.start(player_limit=500)
-# feb 20, 2024
+pp.start(player_limit=10000)

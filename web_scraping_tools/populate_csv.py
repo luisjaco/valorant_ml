@@ -133,6 +133,6 @@ class LeaderboardPage:
         else:
             print('Ending execution.')
 
-path = "testing.csv"
+path = "sample.csv"
 lp = LeaderboardPage(path, delay=2, auto=True)
 lp.start()
