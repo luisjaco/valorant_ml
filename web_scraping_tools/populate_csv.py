@@ -2,7 +2,7 @@ import bs4
 import requests
 import csv
 import time
-
+# TODO KEEP TRACK OF URLS TO AVOID DUPLICATE PLAYERS!
 class LeaderboardPage:
     '''Used to fill a csv with rows of players from a set range of leaderboard pages.'''
     def __init__(self, path: str, delay: int=2.5, auto: bool=False):
